@@ -177,5 +177,7 @@ it is already installed.
 
 ## Licence
 
-No licence has been chosen for PDF4Free's own source code yet. Until the repository owner adds one, the code is
-published for reading and for building your own copy, and the installer is free to download and use.
+PDF4Free is released under the [MIT licence](LICENSE): you may use, copy, modify and redistribute it, including
+commercially, as long as the copyright and licence notice are kept. It comes without warranty.
+
+The bundled third-party components keep their own licences; see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
