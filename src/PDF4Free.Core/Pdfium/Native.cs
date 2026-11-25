@@ -166,6 +166,7 @@ internal static class Native
     [DllImport(Dll)] public static extern nuint FPDFAnnot_CountAttachmentPoints(IntPtr annot);
     [DllImport(Dll)] public static extern int FPDFAnnot_GetAttachmentPoints(IntPtr annot, nuint quadIndex, out FsQuadPointsF quad);
     [DllImport(Dll)] public static extern int FPDFAnnot_GetFlags(IntPtr annot);
+    [DllImport(Dll)] public static extern uint FPDFAnnot_GetFormAdditionalActionJavaScript(IntPtr form, IntPtr annot, int fieldEvent, IntPtr buffer, uint buflen);
 
     // ---- bookmarks, links, actions ----
     [DllImport(Dll)] public static extern IntPtr FPDFBookmark_GetFirstChild(IntPtr doc, IntPtr bookmark);

@@ -57,9 +57,103 @@ public sealed partial class PdfViewer
                     EndEditors();
                     return true;
                 }
+                if (child is DateFieldEditor date)
+                {
+                    date.Text = text;
+                    EndEditors();
+                    return true;
+                }
             }
         }
         return false;
+    }
+
+    private DateFieldEditor? OpenDateEditor() => _pages.Values.SelectMany(p => p.Editors.Children.OfType<DateFieldEditor>()).FirstOrDefault();
+
+    /// <summary>Chooses a date and time in the date editor that is open, the way its calendar and time boxes do, and accepts it.</summary>
+    public bool AutomationPick(DateTime value)
+    {
+        if (OpenDateEditor() is not { } editor) return false;
+        editor.Pick(value);
+        EndEditors();
+        return true;
+    }
+
+    /// <summary>Opens the calendar of the date editor that is open, so a test can use the real picker.</summary>
+    public bool AutomationOpenPicker()
+    {
+        if (OpenDateEditor() is not { } editor) return false;
+        editor.OpenPicker();
+        return true;
+    }
+
+    public bool AutomationClickDay(DateTime day) => OpenDateEditor()?.AutomationClickDay(day) == true;
+
+    public bool AutomationSetTime(int hour, int minute) => OpenDateEditor()?.AutomationSetTime(hour, minute) == true;
+
+    /// <summary>
+    /// Sends a key to whatever has the keyboard focus, as the keyboard would. While another program has the focus
+    /// nothing here has it, and the key goes to the open date editor instead.
+    /// </summary>
+    public bool AutomationKey(System.Windows.Input.Key key)
+    {
+        var target = System.Windows.Input.Keyboard.FocusedElement as UIElement ?? OpenDateEditor()?.KeyTarget;
+        if (target is null || PresentationSource.FromVisual(target) is not { } source) return false;
+        var down = new System.Windows.Input.KeyEventArgs(System.Windows.Input.Keyboard.PrimaryDevice, source, Environment.TickCount, key) { RoutedEvent = System.Windows.Input.Keyboard.PreviewKeyDownEvent };
+        target.RaiseEvent(down);
+        if (down.Handled) return true;
+        target.RaiseEvent(new System.Windows.Input.KeyEventArgs(System.Windows.Input.Keyboard.PrimaryDevice, source, Environment.TickCount, key) { RoutedEvent = System.Windows.Input.Keyboard.KeyDownEvent });
+        return true;
+    }
+
+    private string? _lastStatus;
+
+    /// <summary>The latest status-bar message; recording starts with the first call.</summary>
+    private string LastStatus
+    {
+        get
+        {
+            if (_lastStatus is not null) return _lastStatus;
+            Status += message => _lastStatus = message;
+            return _lastStatus = "";
+        }
+    }
+
+    /// <summary>Whether the window is active, where the keyboard focus is, and what the open date editor shows.</summary>
+    public string AutomationFocus()
+    {
+        var editor = OpenDateEditor();
+        var focused = System.Windows.Input.Keyboard.FocusedElement;
+        var where = focused is null ? "none" : focused.GetType().Name + (focused is DependencyObject d && editor is not null && IsInside(d, editor) ? "(in editor)" : "");
+        return $"active={Window.GetWindow(this)?.IsActive} foreground={ForegroundProcess()} focus={where} editor={(editor is null ? "none" : $"'{editor.Text}'")} picker={editor?.IsPickerOpen == true} status='{LastStatus}'";
+    }
+
+    /// <summary>Puts text into the open date editor without accepting it, as typing does.</summary>
+    public bool AutomationWrite(string text)
+    {
+        if (OpenDateEditor() is not { } editor) return false;
+        editor.Text = text;
+        return true;
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr window, out uint processId);
+
+    /// <summary>The program whose window has the user's attention; a test can tell from it that someone else took the focus away.</summary>
+    private static string ForegroundProcess()
+    {
+        _ = GetWindowThreadProcessId(GetForegroundWindow(), out var id);
+        try
+        {
+            return id == Environment.ProcessId ? "self" : System.Diagnostics.Process.GetProcessById((int)id).ProcessName;
+        }
+        catch (ArgumentException)
+        {
+            return "unknown";
+        }
     }
 
     /// <summary>Where a piece of text sits on a page, in view points ("x y width height"), or empty when it is not there.</summary>
@@ -87,6 +181,7 @@ public sealed partial class PdfViewer
         return new
         {
             name = f.Name, type = f.Type.ToString(), value = f.Value, isChecked = f.Checked, onState = f.OnState, page = f.PageIndex,
+            dateFormat = f.DateFormat?.Pattern ?? "",
             x = Math.Round(view.X, 1), y = Math.Round(view.Y, 1), width = Math.Round(view.Width, 1), height = Math.Round(view.Height, 1),
         };
     }));

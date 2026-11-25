@@ -36,6 +36,8 @@ public enum ViewerTool
 
     // Form design
     FieldText,
+    FieldDate,
+    FieldDateTime,
     FieldCheck,
     FieldRadio,
     FieldCombo,
@@ -55,12 +57,13 @@ public static class ViewerToolInfo
     public static bool IsRectangleDrag(this ViewerTool tool) => tool is
         ViewerTool.Snapshot or ViewerTool.TextBox or ViewerTool.Rectangle or ViewerTool.Ellipse or ViewerTool.Stamp or ViewerTool.PlaceImage
         or ViewerTool.AddLink or ViewerTool.Whiteout or ViewerTool.Crop or ViewerTool.RedactArea or ViewerTool.CertificateArea
-        or ViewerTool.FieldText or ViewerTool.FieldCheck or ViewerTool.FieldRadio or ViewerTool.FieldCombo or ViewerTool.FieldList or ViewerTool.FieldSignature;
+        || tool.IsFormDesign();
 
     public static bool IsLineDrag(this ViewerTool tool) => tool is ViewerTool.Line or ViewerTool.Arrow or ViewerTool.Measure;
 
     public static bool IsFormDesign(this ViewerTool tool) => tool is
-        ViewerTool.FieldText or ViewerTool.FieldCheck or ViewerTool.FieldRadio or ViewerTool.FieldCombo or ViewerTool.FieldList or ViewerTool.FieldSignature;
+        ViewerTool.FieldText or ViewerTool.FieldDate or ViewerTool.FieldDateTime or ViewerTool.FieldCheck or ViewerTool.FieldRadio
+        or ViewerTool.FieldCombo or ViewerTool.FieldList or ViewerTool.FieldSignature;
 
     public static string Hint(this ViewerTool tool) => tool switch
     {

@@ -280,7 +280,7 @@ public partial class MainWindow
     private void RefreshFieldsPanel()
     {
         _fieldList.ItemsSource = Viewer?.Fields
-            .Select(f => new ListRow(f.Name.Length > 0 ? f.Name : "(unnamed)", $"{f.Type}  ·  page {f.PageIndex + 1}" + (f.Value.Length > 0 ? $"  ·  {f.Value}" : ""), f))
+            .Select(f => new ListRow(f.Name.Length > 0 ? f.Name : "(unnamed)", $"{f.DateFormat?.Kind ?? f.Type.ToString()}  ·  page {f.PageIndex + 1}" + (f.Value.Length > 0 ? $"  ·  {f.Value}" : ""), f))
             .ToList();
     }
 

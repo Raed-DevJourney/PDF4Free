@@ -137,19 +137,40 @@ function Invoke-Named($Within, [string]$Name) {
 
 function Select-RibbonTab([string]$Name) { Invoke-Named (Get-MainWindow) $Name; Start-Sleep -Milliseconds 250 }
 
+# Opens a dropdown and selects the entry that passes the test. The list of a dropdown closes when another program
+# takes the focus, so the attempt is repeated a few times before giving up.
+function Select-ComboEntry($Combo, [scriptblock]$Test, [string]$What) {
+    $expand = $Combo.GetCurrentPattern([System.Windows.Automation.ExpandCollapsePattern]::Pattern)
+    foreach ($attempt in 1..8) {
+        $expand.Expand()
+        Start-Sleep -Milliseconds 250
+        $entries = $Combo.FindAll($script:Scope::Descendants, (New-Condition $script:Auto::ControlTypeProperty $script:Types::ListItem))
+        $entry = $entries | Where-Object { & $Test $_.Current.Name } | Select-Object -First 1
+        if ($entry) {
+            $entry.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
+            $expand.Collapse()
+            Start-Sleep -Milliseconds 150
+            return
+        }
+        $expand.Collapse()
+        Start-Sleep -Milliseconds 500
+    }
+    throw "The dropdown has no entry $What."
+}
+
 # Picks an item in a dropdown of the tool options bar, found by the dropdown's accessible name.
 function Select-ComboItem([string]$ComboName, [string]$Item) {
     $condition = New-Object System.Windows.Automation.AndCondition((New-Condition $script:Auto::ControlTypeProperty $script:Types::ComboBox), (New-Condition $script:Auto::NameProperty $ComboName))
     $combo = (Get-MainWindow).FindFirst($script:Scope::Descendants, $condition)
     if (-not $combo) { throw "No dropdown named '$ComboName'." }
-    $expand = $combo.GetCurrentPattern([System.Windows.Automation.ExpandCollapsePattern]::Pattern)
-    $expand.Expand()
-    Start-Sleep -Milliseconds 250
-    $entry = $combo.FindFirst($script:Scope::Descendants, (New-Condition $script:Auto::NameProperty $Item))
-    if (-not $entry) { $expand.Collapse(); throw "'$ComboName' has no item '$Item'." }
-    $entry.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
-    $expand.Collapse()
-    Start-Sleep -Milliseconds 150
+    Select-ComboEntry $combo { param($name) $name -ceq $Item }.GetNewClosure() "'$Item' in '$ComboName'"
+}
+
+# Picks the entry of a dialog's (first) dropdown whose text ends with the given text.
+function Select-DialogChoice($Dialog, [string]$EndsWith) {
+    $combo = $Dialog.FindFirst($script:Scope::Descendants, (New-Condition $script:Auto::ControlTypeProperty $script:Types::ComboBox))
+    if (-not $combo) { throw 'The dialog has no dropdown.' }
+    Select-ComboEntry $combo { param($name) $name.EndsWith($EndsWith) }.GetNewClosure() "ending with '$EndsWith'"
 }
 
 function Set-ToggleState([string]$Name, [bool]$On) {

@@ -586,17 +586,35 @@ public sealed partial class PdfViewer
         {
             view = type is FormFieldType.CheckBox or FormFieldType.Radio ? new Rect(view.X, view.Y, 14, 14) : new Rect(view.X, view.Y, 180, 22);
         }
+        var patterns = tool switch
+        {
+            ViewerTool.FieldDate => DateFieldFormat.DatePatterns,
+            ViewerTool.FieldDateTime => DateFieldFormat.DateTimePatterns,
+            _ => null,
+        };
         var dialog = new FormDialog("New form field", Window.GetWindow(this));
-        var name = dialog.AddText(type == FormFieldType.Radio ? "Group name" : "Field name", type == FormFieldType.Radio ? "Group1" : $"{type}{_fields.Count + 1}");
+        var suggested = type == FormFieldType.Radio ? "Group1" : $"{(patterns is null ? type.ToString() : "Date")}{_fields.Count + 1}";
+        var name = dialog.AddText(type == FormFieldType.Radio ? "Group name" : "Field name", suggested);
         Field<string>? choices = null;
         if (type is FormFieldType.ComboBox or FormFieldType.ListBox) choices = dialog.AddText("Choices (one per line)", "Option 1\nOption 2", multiline: true);
         if (type == FormFieldType.Radio) choices = dialog.AddText("This button's value", $"Choice{_fields.Count(f => f.Type == FormFieldType.Radio) + 1}");
+        var pattern = patterns is null ? null : AddDateFormatChoice(dialog, patterns);
         dialog.Validate(() => string.IsNullOrWhiteSpace(name.Value) ? "Enter a name." : null);
         if (!dialog.Ask()) return;
         var options = choices?.Value.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
         var rect = geometry.ToPage(view);
         var fieldName = name.Value.Trim();
-        await Commit("Add form field", b => FormService.AddField(b, page, rect, type, fieldName, options));
+        var dateFormat = pattern is null ? null : new DateFieldFormat(patterns![pattern.Value]);
+        await Commit("Add form field", b => FormService.AddField(b, page, rect, type, fieldName, options, dateFormat));
+    }
+
+    /// <summary>The "Format" row of a new date field: each pattern with an example, starting on the one closest to the regional settings.</summary>
+    private static Field<int> AddDateFormatChoice(FormDialog dialog, IReadOnlyList<string> patterns)
+    {
+        var regional = System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern;
+        var leading = regional.StartsWith('M') ? "mm/" : regional.StartsWith('y') ? "yyyy" : "dd/";
+        var preferred = Math.Max(0, patterns.ToList().FindIndex(p => p.StartsWith(leading, StringComparison.Ordinal)));
+        return dialog.AddChoice("Format", patterns.Select(p => $"{new DateFieldFormat(p).Example}   ({p})").ToList(), preferred);
     }
 
     private async Task FinishLineAsync(int page)

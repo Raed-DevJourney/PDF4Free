@@ -60,6 +60,21 @@ internal sealed class AutomationServer(Func<PdfViewer?> viewer, Func<PDF4Free.Co
                 case "type":
                     // "\n" in the command stands for a line break, so multi-line fields can be filled from one line.
                     return view.AutomationType(line[(line.IndexOf(' ') + 1)..].Replace("\\n", "\n")) ? "ok" : "error: no editor is open";
+                case "pick":
+                    // "pick 2026-11-26T14:30" chooses that moment in the date editor that is open.
+                    return view.AutomationPick(DateTime.Parse(parts[1], CultureInfo.InvariantCulture)) ? "ok" : "error: no date editor is open";
+                case "picker":
+                    return view.AutomationOpenPicker() ? "ok" : "error: no date editor is open";
+                case "clickday":
+                    return view.AutomationClickDay(DateTime.Parse(parts[1], CultureInfo.InvariantCulture)) ? "ok" : "error: no calendar is open or the day is not shown";
+                case "settime":
+                    return view.AutomationSetTime(int.Parse(parts[1]), int.Parse(parts[2])) ? "ok" : "error: no time picker is open";
+                case "key":
+                    return view.AutomationKey(Enum.Parse<System.Windows.Input.Key>(parts[1], ignoreCase: true)) ? "ok" : "error: nothing has the keyboard focus";
+                case "focus":
+                    return view.AutomationFocus();
+                case "write":
+                    return view.AutomationWrite(line[(line.IndexOf(' ') + 1)..]) ? "ok" : "error: no date editor is open";
                 case "idle":
                     // Returns once every queued edit has been applied and the form fields were re-read.
                     await idle();

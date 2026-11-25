@@ -367,6 +367,8 @@ public partial class MainWindow
         var tab = RibbonTab("Forms");
         Group(tab, "Add field",
             ToolButton(Icons.Rename, "Text Field", ViewerTool.FieldText, "Add a text field"),
+            ToolButton(Icons.Calendar, "Date", ViewerTool.FieldDate, "Add a date field with a calendar"),
+            ToolButton(Icons.DateTime, "Date & Time", ViewerTool.FieldDateTime, "Add a field for a date and a time"),
             ToolButton(Icons.Check, "Check Box", ViewerTool.FieldCheck, "Add a check box"),
             ToolButton(Icons.Circle, "Radio Button", ViewerTool.FieldRadio, "Add a radio button to a group"),
             ToolButton(Icons.Down, "Dropdown", ViewerTool.FieldCombo, "Add a dropdown list"),

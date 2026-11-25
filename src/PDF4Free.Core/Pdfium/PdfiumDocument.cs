@@ -377,6 +377,31 @@ public sealed class PdfiumDocument : IDisposable
             (flags & 0x2) != 0);
     }
 
+    /// <summary>
+    /// The script a form field runs on an event (12 keystroke, 13 format, 14 validate, 15 calculate) as PDFium finds
+    /// it. PDFium does not run it; this is how the checks confirm that a second reader sees the scripts we write.
+    /// </summary>
+    internal string GetFieldScript(int pageIndex, int annotIndex, int fieldEvent)
+    {
+        lock (PdfiumLibrary.Sync)
+        {
+            if (_forms is null) return "";
+            return WithPage(pageIndex, page =>
+            {
+                var annot = Native.FPDFPage_GetAnnot(page, annotIndex);
+                if (annot == IntPtr.Zero) return "";
+                try
+                {
+                    return ReadUtf16((buffer, length) => Native.FPDFAnnot_GetFormAdditionalActionJavaScript(_forms.Handle, annot, fieldEvent, buffer, length));
+                }
+                finally
+                {
+                    Native.FPDFPage_CloseAnnot(annot);
+                }
+            });
+        }
+    }
+
     // ------------------------------------------------------------------ page objects
 
     public List<PageObjectInfo> GetPageObjects(int pageIndex)

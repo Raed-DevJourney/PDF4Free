@@ -226,8 +226,10 @@ public sealed partial class PdfViewer
         _endEditor = End;
         editor.LostKeyboardFocus += (_, e) =>
         {
-            // Focus moving into the editor's own popup (a combo box list) is not "leaving".
+            // Focus moving into the editor's own popup (a combo box list, a calendar) is not "leaving".
             if (e.NewFocus is DependencyObject target && IsInside(target, editor)) return;
+            // Nor is switching to another program: the editor waits, and typing carries on after coming back.
+            if (e.NewFocus is null && Window.GetWindow(this) is not { IsActive: true }) return;
             End(true);
         };
         editor.PreviewKeyDown += (_, e) =>
@@ -251,11 +253,18 @@ public sealed partial class PdfViewer
 
     private static bool IsInside(DependencyObject element, DependencyObject ancestor)
     {
-        for (var current = element; current is not null; current = current is Visual or System.Windows.Media.Media3D.Visual3D ? VisualTreeHelper.GetParent(current) : LogicalTreeHelper.GetParent(current))
+        for (var current = element; current is not null; current = ParentOf(current))
         {
             if (ReferenceEquals(current, ancestor)) return true;
         }
         return false;
+    }
+
+    /// <summary>The visual parent, or the logical one where the visual tree ends (the root of a popup leads back to its owner that way).</summary>
+    private static DependencyObject? ParentOf(DependencyObject element)
+    {
+        var visual = element is Visual or System.Windows.Media.Media3D.Visual3D ? VisualTreeHelper.GetParent(element) : null;
+        return visual ?? LogicalTreeHelper.GetParent(element);
     }
 
     /// <summary>Accepts whatever inline editor is open.</summary>
@@ -283,6 +292,9 @@ public sealed partial class PdfViewer
                 break;
             case FormFieldType.Radio:
                 if (!field.Checked) _ = SetField(field, "true");
+                break;
+            case FormFieldType.Text when field.DateFormat is { } format:
+                ShowFieldDateEditor(field, format);
                 break;
             case FormFieldType.Text:
                 ShowFieldTextEditor(field);
@@ -320,20 +332,52 @@ public sealed partial class PdfViewer
         if (field.MaxLength > 0) box.MaxLength = field.MaxLength;
         Canvas.SetLeft(box, rect.X);
         Canvas.SetTop(box, rect.Y);
-        var moveOn = false;
-        box.PreviewKeyDown += (_, e) =>
-        {
-            if (e.Key != Key.Tab) return;
-            e.Handled = true;
-            moveOn = true;
-            Focus();
-        };
+        var tabbed = TabMovesOn(box);
         HostEditor(pageView, box, async accept =>
         {
             if (accept && box.Text != field.Value) await SetField(field, box.Text);
-            if (accept && moveOn) await ActivateNextFieldAsync(field);
+            if (accept && tabbed()) await ActivateNextFieldAsync(field);
         }, field.Multiline);
         box.SelectAll();
+    }
+
+    /// <summary>Makes Tab accept the editor. The returned function tells whether that is how the editing ended.</summary>
+    private Func<bool> TabMovesOn(Control editor, Func<bool>? busy = null)
+    {
+        var tabbed = false;
+        editor.PreviewKeyDown += (_, e) =>
+        {
+            if (e.Key != Key.Tab || busy?.Invoke() == true) return;
+            e.Handled = true;
+            tabbed = true;
+            EndEditors();
+            Focus();
+        };
+        return () => tabbed;
+    }
+
+    private void ShowFieldDateEditor(FormFieldInfo field, DateFieldFormat format)
+    {
+        if (!_pages.TryGetValue(field.PageIndex, out var pageView) || TryGeometry(field.PageIndex) is not { } geometry) return;
+        var rect = ToDip(geometry.ToView(field.Rect));
+        var editor = new DateFieldEditor(format, field.Value, HandleBrush, Math.Clamp(rect.Height * 0.62, 6, 14 * Scale))
+        {
+            Width = Math.Max(rect.Width, 90),
+            Height = Math.Max(rect.Height, 16),
+        };
+        Canvas.SetLeft(editor, rect.X);
+        Canvas.SetTop(editor, rect.Y);
+        var problem = $"\"{field.Name}\" takes a {format.Kind.ToLowerInvariant()} such as {format.Example}.";
+        editor.Rejected += () => Say(problem);
+        var tabbed = TabMovesOn(editor, () => editor.IsPickerOpen);
+        HostEditor(pageView, editor, async accept =>
+        {
+            if (!accept) return;
+            if (!editor.IsValid) Say(problem + " The field was left as it was.");
+            else if (format.Normalize(editor.Text.Trim()) is var value && value != field.Value) await SetField(field, value);
+            if (tabbed()) await ActivateNextFieldAsync(field);
+        }, enterInsertsLine: false);
+        editor.SelectAll();
     }
 
     private void ShowFieldChoiceEditor(FormFieldInfo field)

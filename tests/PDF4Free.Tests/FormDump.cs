@@ -42,6 +42,7 @@ public static class FormDump
                 onState = f.OnState,
                 options = f.Options.Select(o => o.Display).ToArray(),
                 multiline = f.Multiline,
+                dateFormat = f.DateFormat?.Pattern ?? "",
                 page = f.PageIndex,
             }),
             staticText,

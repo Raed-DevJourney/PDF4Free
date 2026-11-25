@@ -36,14 +36,16 @@ $labels = @(
     @(394, 284, 9, $true, 'Unit price'), @(460, 284, 9, $true, 'Line total'), @(527, 284, 9, $true, 'B/O'),
     @(72, 418, 9, $true, 'TOTALS AND APPROVAL'),
     @(72, 432, 9, $false, 'Notes'), @(408, 449, 9, $false, 'Subtotal'), @(408, 471, 9, $false, 'Tax'), @(408, 493, 9, $false, 'Total'),
-    @(88, 517, 9, $false, 'Approved'), @(180, 506, 9, $false, 'Authorized by'), @(370, 506, 9, $false, 'Signature')
+    @(88, 517, 9, $false, 'Approved'), @(180, 506, 9, $false, 'Authorized by'), @(370, 506, 9, $false, 'Signature'),
+    @(180, 542, 9, $false, 'Approved on')
 )
 for ($row = 1; $row -le 5; $row++) { $labels += , @(78, (302 + ($row - 1) * 22), 9, $false, "$row") }
 
-# Fields: tool, name, x, y, width, height, extra (choices for lists, value for a radio button), expected type.
+# Fields: tool, name, x, y, width, height, extra (choices for lists, value for a radio button, format for dates),
+# expected type. A date field is a text field that carries a date format.
 $fields = @(
     @('FieldText', 'PONumber', 72, 124, 150, 18, $null, 'Text'),
-    @('FieldText', 'OrderDate', 240, 124, 110, 18, $null, 'Text'),
+    @('FieldDate', 'OrderDate', 240, 124, 110, 18, 'dd/mm/yyyy', 'Text'),
     @('FieldCombo', 'PaymentTerms', 370, 124, 170, 18, "Net 15`nNet 30`nNet 60`nPrepaid", 'ComboBox'),
     @('FieldText', 'CustomerName', 72, 164, 220, 18, $null, 'Text'),
     @('FieldText', 'CustomerEmail', 310, 164, 230, 18, $null, 'Text'),
@@ -71,12 +73,13 @@ $fields += @(
     @('FieldText', 'GrandTotal', 460, 488, 62, 18, $null, 'Text'),
     @('FieldCheck', 'Approved', 72, 516, 12, 12, $null, 'CheckBox'),
     @('FieldText', 'AuthorizedBy', 180, 518, 170, 18, $null, 'Text'),
-    @('FieldSignature', 'ApprovalSignature', 370, 518, 170, 40, $null, 'Signature')
+    @('FieldSignature', 'ApprovalSignature', 370, 518, 170, 40, $null, 'Signature'),
+    @('FieldDateTime', 'ApprovedOn', 180, 554, 170, 18, 'd mmm yyyy HH:MM', 'Text')
 )
 
 # What gets typed into the text fields ("\n" is a line break), in filling order.
 $textValues = [ordered]@{
-    PONumber = 'PO-2026-0457'; OrderDate = '2026-11-25'; CustomerName = 'Cedar Trading Co. s.a.l.'
+    PONumber = 'PO-2026-0457'; CustomerName = 'Cedar Trading Co. s.a.l.'
     CustomerEmail = 'orders@cedartrading.example'; ShipTo = 'Hamra Street, Block B\nBeirut 1103, Lebanon'
     Item1 = 'A-1001'; Desc1 = 'Printer paper A4, 500 sheets'; Qty1 = '12'; Price1 = '4.75'; Total1 = '57.00'
     Item2 = 'B-2040'; Desc2 = 'Toner cartridge, black'; Qty2 = '3'; Price2 = '68.90'; Total2 = '206.70'
@@ -85,6 +88,12 @@ $textValues = [ordered]@{
     Subtotal = '521.70'; Tax = '57.39'; GrandTotal = '579.09'; AuthorizedBy = 'Layla Haddad'
 }
 $choiceValues = [ordered]@{ PaymentTerms = 'Net 30'; ShippingMethod = 'Courier' }
+# Date fields: the format chosen in the designer, how the value is entered (typed text, or a moment chosen the way
+# the calendar and time boxes choose it), and what the field must hold afterwards.
+$dateFields = [ordered]@{
+    OrderDate  = @{ Format = 'dd/mm/yyyy'; Typed = '2026-11-25'; Stored = '25/11/2026' }
+    ApprovedOn = @{ Format = 'd mmm yyyy HH:MM'; Picked = '2026-11-26T14:30'; Stored = '26 Nov 2026 14:30' }
+}
 $radioChoice = @{ Delivery = 'Express' }
 $checkedBoxes = @('Taxable', 'Backorder2', 'Approved')
 
@@ -105,7 +114,8 @@ function Add-Field($field) {
     Send-App "drag 0 $x $y $($x + $width) $($y + $height)" -NoWait
     $dialog = Wait-Dialog 'New form field'
     Set-DialogText $dialog 0 $name
-    if ($null -ne $extra) { Set-DialogText $dialog 1 $extra }
+    if ($tool -like 'FieldDate*') { Select-DialogChoice $dialog "($extra)" }
+    elseif ($null -ne $extra) { Set-DialogText $dialog 1 $extra }
     Invoke-Named $dialog 'OK'
     Wait-DialogGone 'New form field'
     [void](Send-App 'idle')
@@ -131,6 +141,7 @@ function Normalize([string]$text) { ($text -replace "`r`n", "`n").Trim() }
 function Get-Expected($name, $onState) {
     if ($textValues.Contains($name)) { return @{ Value = ($textValues[$name] -replace '\\n', "`n"); Checked = $false } }
     if ($choiceValues.Contains($name)) { return @{ Value = $choiceValues[$name]; Checked = $false } }
+    if ($dateFields.Contains($name)) { return @{ Value = $dateFields[$name].Stored; Checked = $false } }
     if ($radioChoice.ContainsKey($name)) { return @{ Value = $radioChoice[$name]; Checked = ($onState -eq $radioChoice[$name]) } }
     if ($checkedBoxes -contains $name) { return @{ Value = 'Yes'; Checked = $true } }
     return @{ Value = ''; Checked = $false }
@@ -196,6 +207,8 @@ for ($i = 0; $i -lt $fields.Count; $i++) {
     if (-not $match) { $wrongType += $fields[$i][1] }
 }
 Assert-Equal '' ($wrongType -join ', ') 'every field kept its name and control type'
+$wrongFormat = @($reopened | Where-Object { $_.dateFormat -cne $(if ($dateFields.Contains($_.name)) { $dateFields[$_.name].Format } else { '' }) } | ForEach-Object { "$($_.name) '$($_.dateFormat)'" })
+Assert-Equal '' ($wrongFormat -join ', ') 'the two date fields kept their formats and no other field is a date'
 Assert-Equal 0 @($reopened | Where-Object { $_.isChecked -or ($_.value -ne '' -and $_.value -ne 'Off') }).Count 'every field of the saved design is empty'
 $staticText = (Read-FormFile $blankForm).staticText[0]
 Assert-That ($staticText -match 'PURCHASE ORDER' -and $staticText -match 'Unit price' -and $staticText -match 'Authorized by') 'the labels are part of the saved page'
@@ -203,6 +216,16 @@ Assert-That ($staticText -match 'PURCHASE ORDER' -and $staticText -match 'Unit p
 # ---------------------------------------------------------------- 3. fill
 
 Write-Host '4. Filling the form'
+# A date field refuses text that is not a date, takes a typed date in another notation, and takes a picked moment.
+Click-Field ($reopened | Where-Object name -eq 'OrderDate')
+[void](Send-App 'type as soon as possible')
+[void](Send-App 'idle')
+Assert-Equal '' (Get-AppFields | Where-Object name -eq 'OrderDate').value 'a date field refuses text that is not a date'
+foreach ($name in $dateFields.Keys) {
+    Click-Field ($reopened | Where-Object name -eq $name)
+    if ($dateFields[$name].Typed) { [void](Send-App "type $($dateFields[$name].Typed)") } else { [void](Send-App "pick $($dateFields[$name].Picked)") }
+    [void](Send-App 'idle')
+}
 foreach ($name in $textValues.Keys) {
     Click-Field ($reopened | Where-Object name -eq $name)
     [void](Send-App "type $($textValues[$name])")
@@ -272,6 +295,7 @@ foreach ($name in $textValues.Keys) {
     }
 }
 foreach ($name in $choiceValues.Keys) { if (-not $visible.Contains($choiceValues[$name])) { $missing += $name } }
+foreach ($name in $dateFields.Keys) { if (-not $visible.Contains($dateFields[$name].Stored)) { $missing += $name } }
 Assert-Equal '' ($missing -join ', ') 'every typed and chosen value is drawn on the page (field appearances were written)'
 
 $design = Read-FormFile $blankForm

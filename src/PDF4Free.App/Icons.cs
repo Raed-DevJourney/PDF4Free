@@ -70,6 +70,9 @@ public static class Icons
     public const string Grid = "";
     public const string Shapes = "";
     public const string Eraser = "";
+    public const string Calendar = "";
+    public const string DateTime = "";
+    public const string Clock = "";
     public const string Calculator = "";
     public const string FitPage = "";
     public const string FullScreen = "";

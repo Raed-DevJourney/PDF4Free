@@ -25,7 +25,12 @@ public sealed record FormFieldInfo(
     bool ReadOnly,
     bool Multiline,
     bool Password,
-    int MaxLength);
+    int MaxLength,
+    DateFieldFormat? DateFormat)
+{
+    /// <summary>A text field that holds a date, a time or both.</summary>
+    public bool IsDate => DateFormat is not null;
+}
 
 /// <summary>Reads, fills and creates AcroForm fields by working on the raw field dictionaries.</summary>
 public static partial class FormService
@@ -72,7 +77,31 @@ public static partial class FormService
             (flags & FlagReadOnly) != 0,
             (flags & FlagMultiline) != 0,
             (flags & FlagPassword) != 0,
-            (int)PdfX.Number(Inherited(widget, "/MaxLen")));
+            (int)PdfX.Number(Inherited(widget, "/MaxLen")),
+            type == FormFieldType.Text ? DateFormatOf(widget) : null);
+    }
+
+    /// <summary>The date format a text field declares through its format or keystroke script, if it has one.</summary>
+    private static DateFieldFormat? DateFormatOf(PdfDictionary widget)
+    {
+        var actions = FieldOf(widget).Dict("/AA") ?? widget.Dict("/AA");
+        if (actions is null) return null;
+        return DateFieldFormat.FromScript(ScriptOf(actions.Dict("/F"))) ?? DateFieldFormat.FromScript(ScriptOf(actions.Dict("/K")));
+    }
+
+    private static string ScriptOf(PdfDictionary? action)
+    {
+        if (action is null || action.Name("/S") != "/JavaScript") return "";
+        if (PdfX.Resolve(action.Elements["/JS"]) is not PdfDictionary { Stream: { } stream }) return action.Text("/JS");
+        try
+        {
+            return PdfX.WinAnsi.GetString(stream.UnfilteredValue);
+        }
+        catch (Exception)
+        {
+            // A script stream that cannot be decoded only means the field is treated as plain text.
+            return "";
+        }
     }
 
     private static FormFieldType TypeOf(string fieldType, int flags) => fieldType switch
@@ -221,6 +250,8 @@ public static partial class FormService
         switch (TypeOf(Name(Inherited(widget, "/FT")), flags))
         {
             case FormFieldType.Text:
+                // A date is stored the way the field's format shows it, as Acrobat does.
+                value = DateFormatOf(widget)?.Normalize(value) ?? value;
                 field.Elements["/V"] = PdfX.UnicodeString(value);
                 foreach (var w in WidgetsOf(field, widget)) BuildTextAppearance(doc, w, DisplayText(value, flags), flags);
                 break;
@@ -458,8 +489,12 @@ public static partial class FormService
 
     // ------------------------------------------------------------------ creating and deleting fields
 
-    /// <summary>Adds a field. For radio buttons, <paramref name="name"/> is the group and <paramref name="options"/>[0] the button's value.</summary>
-    public static byte[] AddField(byte[] source, int pageIndex, PdfRect rect, FormFieldType type, string name, IReadOnlyList<string>? options = null) =>
+    /// <summary>
+    /// Adds a field. For radio buttons, <paramref name="name"/> is the group and <paramref name="options"/>[0] the
+    /// button's value. A text field given a <paramref name="dateFormat"/> becomes a date field.
+    /// </summary>
+    public static byte[] AddField(byte[] source, int pageIndex, PdfRect rect, FormFieldType type, string name,
+        IReadOnlyList<string>? options = null, DateFieldFormat? dateFormat = null) =>
         PdfIO.Modify(source, doc =>
         {
             var page = doc.Pages[pageIndex];
@@ -509,12 +544,35 @@ public static partial class FormService
                     widget.Elements.SetName("/FT", "/Tx");
                     widget.Elements["/T"] = PdfX.UnicodeString(unique);
                     widget.Elements.SetString("/DA", "/Helv 0 Tf 0 g");
-                    if (rect.Height > 40 || (rotation is 1 or 3 && rect.Width > 40)) widget.Elements.SetInteger("/Ff", FlagMultiline);
+                    if (dateFormat is not null) MakeDate(doc, widget, dateFormat);
+                    else if (rect.Height > 40 || (rotation is 1 or 3 && rect.Width > 40)) widget.Elements.SetInteger("/Ff", FlagMultiline);
                     BuildTextAppearance(doc, widget, "", widget.Int("/Ff"));
                     fields.Elements.Add(PdfX.Ref(widget));
                     break;
             }
         });
+
+    /// <summary>
+    /// Turns a text field into a date field the way Acrobat does: a format and a keystroke script that name the
+    /// pattern. Readers that run form scripts then validate and format what is typed; this application reads the
+    /// pattern from the same scripts.
+    /// </summary>
+    private static void MakeDate(PdfDocument doc, PdfDictionary widget, DateFieldFormat format)
+    {
+        var actions = new PdfDictionary(doc);
+        actions.Elements["/F"] = ScriptAction(doc, format.FormatScript);
+        actions.Elements["/K"] = ScriptAction(doc, format.KeystrokeScript);
+        widget.Elements["/AA"] = actions;
+        widget.Elements.SetString("/TU", $"{format.Kind} ({format.Pattern})");
+    }
+
+    private static PdfDictionary ScriptAction(PdfDocument doc, string script)
+    {
+        var action = new PdfDictionary(doc);
+        action.Elements.SetName("/S", "/JavaScript");
+        action.Elements.SetString("/JS", script);
+        return action;
+    }
 
     private static PdfDictionary EnsureAcroForm(PdfDocument doc)
     {

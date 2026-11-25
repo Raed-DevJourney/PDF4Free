@@ -16,7 +16,7 @@ trademarks of Adobe Inc.
 
 ## Download and install
 
-1. Download **PDF4Free-Setup.exe** from the [latest release](https://github.com/raedg2000/PDF4Free/releases/latest).
+1. Download **PDF4Free-Setup.exe** from the [latest release](https://github.com/Raed-DevJourney/PDF4Free/releases/latest).
 2. Run it and choose **Install**. It installs for your Windows account only, so no administrator rights are needed.
 3. Start PDF4Free from the Start menu.
 
@@ -44,7 +44,7 @@ Good to know:
 | **Create** | From images (including multi-page TIFF), text files, Word / Excel / PowerPoint documents, web pages and local HTML, the clipboard, a scanner (WIA), or blank |
 | **Export** | Word (.docx, editable text or exact page pictures), Excel (.xlsx), PowerPoint (.pptx), images (PNG, JPEG, TIFF, BMP), text, HTML, and all embedded pictures |
 | **Scan & OCR** | Recognise text with the OCR engine built into Windows and add an invisible, searchable text layer; copy the recognised text of a page |
-| **Forms** | Fill text fields, check boxes, radio buttons, dropdowns and lists; design forms with all of those plus signature fields; field list; reset; flatten; export and import field data as CSV |
+| **Forms** | Fill text fields, date and date-and-time fields (calendar and time picker), check boxes, radio buttons, dropdowns and lists; design forms with all of those plus signature fields; field list; reset; flatten; export and import field data as CSV |
 | **Protect** | Open and permissions passwords with AES-256 or AES-128 and permission flags; honours restrictions on protected files until the permissions password is entered; redaction (mark areas or text, find-and-mark by text or pattern such as e-mail addresses and card numbers, apply permanently); remove hidden information |
 | **Sign** | Draw, type or import a handwritten signature and place it (signatures are remembered); add the date; certificate-based digital signatures (visible or invisible) from the Windows certificate store or a .pfx file; signature validation; create a self-signed digital ID |
 | **Tools** | Compare two PDFs word by word with side-by-side marked pages; batch-process many files; file attachments; bookmark editing; compress (image downsampling and recompression); undo / redo for every edit |
@@ -61,8 +61,8 @@ Good to know:
 | Crop, rotate, delete, insert, extract, reorder, split, combine | Yes | |
 | Header / footer, watermark, background, Bates numbering | Yes | Added content is not tracked for later one-click removal (use Undo) |
 | Comments and markup, stamps | Yes | No reply threads, no shared (cloud) review |
-| Fill forms | Yes | AcroForm only. XFA (LiveCycle) forms are detected and reported but cannot be filled; no form JavaScript (calculations, validation) |
-| Create forms | Partly | Text, check box, radio, dropdown, list, signature fields; no automatic field detection, no buttons or scripts |
+| Fill forms | Yes | AcroForm only. XFA (LiveCycle) forms are detected and reported but cannot be filled. Form JavaScript is not run, so there are no calculations or custom validation; date fields are the exception, recognised from Acrobat's standard date scripts and handled by PDF4Free itself |
+| Create forms | Partly | Text, date, date and time, check box, radio, dropdown, list, signature fields; no automatic field detection, no buttons, calculations or number formats |
 | Fill & Sign (handwritten signature) | Yes | |
 | Certificate signatures and validation | Yes | CMS / PKCS#7 detached signatures with SHA-256. No timestamp server, no long-term validation (LTV), no certification levels |
 | Request e-signatures, web forms, bulk send | No | These are Adobe cloud services |
@@ -122,6 +122,10 @@ Design points worth knowing:
   it with PDFium's own mapping.
 - **Comments and form fields are real PDF objects** with their own appearance streams, so they look the same in
   other readers and stay upright on rotated pages.
+- **Date fields follow Acrobat's convention.** PDF has no date field type: a date field is a text field whose
+  format and keystroke actions name a pattern, such as `AFDate_FormatEx("dd/mm/yyyy")`. PDF4Free writes those two
+  actions and reads the pattern back from them (including Acrobat's numbered formats), so it never has to run a
+  script. A typed date is stored in the field's pattern; `2026-11-25` becomes `25/11/2026`.
 - **Redaction is destructive by design.** Pages with redactions are replaced by an image of themselves; a check
   searches the raw file to prove the redacted text is gone.
 - **The OCR text layer is invisible text** (PDF text render mode 3); a check compares pixels before and after.
@@ -130,9 +134,10 @@ Design points worth knowing:
 
 ## What was verified, and what was not
 
-**Engine (30 automated checks):** rendering, text extraction, coordinate mapping on rotated and cropped pages,
+**Engine (32 automated checks):** rendering, text extraction, coordinate mapping on rotated and cropped pages,
 all comment types, text and image placement, mixed left-to-right and right-to-left text, watermark / header /
-Bates, page organisation, passwords and permissions, bookmarks, search and patterns, attachments, sanitising,
+Bates, page organisation, form fields, date formats and date fields (PDFium, as a second reader, is asked for the
+date scripts and finds them), passwords and permissions, bookmarks, search and patterns, attachments, sanitising,
 redaction, OCR, creating PDFs from text, images and .docx, compression, comparison, digital signing and tamper
 detection, every export format (the Word, Excel and PowerPoint files are opened with the real Office applications
 when they are installed), and undo / redo.
@@ -143,20 +148,26 @@ grid (rotate, duplicate), search, the comment list, watermarking, find-and-redac
 placing a typed signature, the comparison window, the main dialogs, and web capture (a local HTML file, a live web
 address, and an address that cannot be reached).
 
-**Form round trip (`tests/ui/FormEndToEnd.ps1`, 15 checks):** a purchase-order form with a header, five order lines
-and a totals/approval block — 49 fields: text, multi-line text, dropdown, list box, radio group, check boxes and a
-signature field — is designed on a blank page with the application's own tools and saved with Save As. The
-application is restarted, the form is checked to be blank, every kind of control is filled, and the result is saved
-under a new name. After another restart every value is validated three ways: what the application shows, what the
-engine reads from the file, and what a reader would display (the text of the flattened form). The two files are in
-`samples/`.
+**Form round trip (`tests/ui/FormEndToEnd.ps1`, 17 checks):** a purchase-order form with a header, five order lines
+and a totals/approval block — 50 fields: text, multi-line text, date, date and time, dropdown, list box, radio
+group, check boxes and a signature field — is designed on a blank page with the application's own tools and saved
+with Save As. The application is restarted, the form is checked to be blank, every kind of control is filled, and
+the result is saved under a new name. After another restart every value is validated three ways: what the
+application shows, what the engine reads from the file, and what a reader would display (the text of the flattened
+form). The two files are in `samples/`.
+
+**Date picker:** walked through in the running application with debug-build test hooks that raise the same mouse
+and key events a person causes: clicking a day (which closes the calendar of a date field and leaves it open in a
+date-and-time field), the time boxes, Enter and Esc inside the picker and outside it, F4, Tab to the next field,
+and Enter on text that is not a date (the editor stays open and says what it expects).
 
 **Installer:** silent install into a scratch folder, shortcut and registry entries checked, the installed copy
 started and used (open, edit, HTML conversion), then uninstalled with every trace confirmed gone.
 
 **Not exercised yet** (the code is in place but needs a first real-world run): printing to a physical printer,
 scanning, read aloud, signing with a smart card or hardware token, drag-and-drop reordering with a real mouse,
-very large documents (hundreds of megabytes), and installation on a PC other than the one it was built on.
+the date picker with a real mouse and keyboard, date fields opened in Adobe Acrobat itself, very large documents
+(hundreds of megabytes), and installation on a PC other than the one it was built on.
 
 ## Third-party components
 
