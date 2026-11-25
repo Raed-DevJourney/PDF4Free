@@ -1,0 +1,97 @@
+namespace PDF4Free.App;
+
+/// <summary>Glyphs from the Segoe Fluent Icons / Segoe MDL2 Assets fonts that ship with Windows.</summary>
+public static class Icons
+{
+    public const string Open = "";
+    public const string Save = "";
+    public const string SaveAs = "";
+    public const string Print = "";
+    public const string Undo = "";
+    public const string Redo = "";
+    public const string ZoomIn = "";
+    public const string ZoomOut = "";
+    public const string Search = "";
+    public const string Page = "";
+    public const string Left = "";
+    public const string Right = "";
+    public const string Up = "";
+    public const string Down = "";
+    public const string RotateRight = "";
+    public const string Delete = "";
+    public const string Add = "";
+    public const string Edit = "";
+    public const string Copy = "";
+    public const string Highlight = "";
+    public const string Underline = "";
+    public const string Bold = "";
+    public const string Font = "";
+    public const string Comment = "";
+    public const string Pen = "";
+    public const string Rename = "";
+    public const string Folder = "";
+    public const string Library = "";
+    public const string Lock = "";
+    public const string Unlock = "";
+    public const string Permissions = "";
+    public const string Settings = "";
+    public const string Info = "";
+    public const string Help = "";
+    public const string Close = "";
+    public const string Check = "";
+    public const string List = "";
+    public const string Picture = "";
+    public const string Camera = "";
+    public const string NewWindow = "";
+    public const string Download = "";
+    public const string Upload = "";
+    public const string Share = "";
+    public const string Scan = "";
+    public const string Filter = "";
+    public const string Color = "";
+    public const string Attach = "";
+    public const string Link = "";
+    public const string Bookmark = "";
+    public const string Hand = "";
+    public const string Pointer = "";
+    public const string Crop = "";
+    public const string Document = "";
+    public const string Mail = "";
+    public const string Refresh = "";
+    public const string Globe = "";
+    public const string Play = "";
+    public const string Stop = "";
+    public const string Shield = "";
+    public const string Certificate = "";
+    public const string View = "";
+    public const string Hide = "";
+    public const string Merge = "";
+    public const string Split = "";
+    public const string Grid = "";
+    public const string Shapes = "";
+    public const string Eraser = "";
+    public const string Calculator = "";
+    public const string FitPage = "";
+    public const string FullScreen = "";
+    public const string Stamp = "";
+    public const string Text = "";
+    public const string Table = "";
+    public const string Slides = "";
+    public const string Compare = "";
+    public const string Compress = "";
+    public const string Forms = "";
+    public const string More = "";
+    public const string Home = "";
+    public const string Volume = "";
+    public const string Ruler = "";
+    public const string Batch = "";
+    public const string Strikethrough = "";
+    public const string Circle = "";
+    public const string Minus = "";
+    public const string Scissors = "";
+    public const string Sticker = "";
+
+    /// <summary>Every icon, for the check that verifies the installed font really has each glyph.</summary>
+    public static IEnumerable<(string Name, string Glyph)> All() =>
+        typeof(Icons).GetFields().Where(f => f.IsLiteral && f.FieldType == typeof(string)).Select(f => (f.Name, (string)f.GetRawConstantValue()!));
+}

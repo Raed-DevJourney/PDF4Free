@@ -1,0 +1,14 @@
+# Build output
+bin/
+obj/
+artifacts/
+publish/
+
+# IDE and user files
+.vs/
+.idea/
+*.user
+*.suo
+
+# Scratch output of the UI tests
+*.dump.json

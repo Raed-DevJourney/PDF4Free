@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>PDF4Free</AssemblyName>
+    <RootNamespace>PDF4Free.App</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Embedded in the executable: this is the icon Windows shows on the taskbar, in Explorer and in Alt+Tab. -->
+    <ApplicationIcon>Assets\PDF4Free.ico</ApplicationIcon>
+    <NoWarn>$(NoWarn);WPF0001</NoWarn>
+    <Product>PDF4Free</Product>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PDF4Free.Core\PDF4Free.Core.csproj" />
+    <Using Include="System.IO" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Window icon and welcome-screen logo. Regenerate both with tools/IconBuilder. -->
+    <Resource Include="Assets\PDF4Free.ico" />
+    <Resource Include="Assets\PDF4Free.png" />
+    <None Remove="Assets\icon-preview.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4370.26" />
+    <PackageReference Include="System.Speech" Version="10.0.15" />
+  </ItemGroup>
+
+</Project>

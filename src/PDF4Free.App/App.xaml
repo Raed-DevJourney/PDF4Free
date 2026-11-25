@@ -1,0 +1,47 @@
+<Application x:Class="PDF4Free.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             ThemeMode="System"
+             ShutdownMode="OnMainWindowClose">
+    <Application.Resources>
+        <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
+
+        <Style x:Key="IconText" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{StaticResource IconFont}" />
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <!-- A page thumbnail: the picture loads the first time the item scrolls into view. -->
+        <DataTemplate x:Key="ThumbTemplate">
+            <StackPanel Margin="6,5" HorizontalAlignment="Center">
+                <Border BorderBrush="#66808080" BorderThickness="1" Background="White"
+                        Width="{Binding Width}" Height="{Binding Height}">
+                    <Image Source="{Binding Image}" Stretch="Fill" />
+                </Border>
+                <TextBlock Text="{Binding Label}" HorizontalAlignment="Center" FontSize="11" Margin="0,3,0,0" />
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- A two-line row used by the comment, search, attachment, signature and field lists. -->
+        <DataTemplate x:Key="RowTemplate">
+            <StackPanel Margin="2,4">
+                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding Detail}" TextWrapping="Wrap" Opacity="0.75" FontSize="12"
+                           MaxHeight="68" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+        </DataTemplate>
+
+        <HierarchicalDataTemplate x:Key="BookmarkTemplate" ItemsSource="{Binding Children}">
+            <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" Margin="0,2" />
+        </HierarchicalDataTemplate>
+
+        <Style x:Key="GroupCaption" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Opacity" Value="0.65" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,2,0,0" />
+        </Style>
+    </Application.Resources>
+</Application>

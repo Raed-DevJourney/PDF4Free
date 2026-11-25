@@ -1,0 +1,78 @@
+<Window x:Class="PDF4Free.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="PDF4Free" Width="1420" Height="900" MinWidth="980" MinHeight="600"
+        Icon="/Assets/PDF4Free.ico"
+        WindowStartupLocation="CenterScreen" AllowDrop="True">
+    <DockPanel LastChildFill="True">
+
+        <!-- Ribbon: one tab per task area. Filled in code. -->
+        <TabControl x:Name="Ribbon" DockPanel.Dock="Top" Height="132" Margin="6,4,6,0" Padding="0" />
+
+        <!-- Options of the active tool. -->
+        <Border x:Name="OptionsBar" DockPanel.Dock="Top" Padding="12,4" MinHeight="38"
+                BorderThickness="0,1,0,1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+            <DockPanel>
+                <TextBlock x:Name="ToolHint" DockPanel.Dock="Right" VerticalAlignment="Center" Opacity="0.7"
+                           TextTrimming="CharacterEllipsis" MaxWidth="620" Margin="16,0,0,0" />
+                <StackPanel x:Name="OptionsPanel" Orientation="Horizontal" VerticalAlignment="Center" />
+            </DockPanel>
+        </Border>
+
+        <!-- Notices about the current document (protected, unlocked copy, unsupported form type). -->
+        <Border x:Name="InfoBar" DockPanel.Dock="Top" Padding="12,6" Visibility="Collapsed" Background="#FFF4CE">
+            <DockPanel>
+                <Button x:Name="InfoAction" DockPanel.Dock="Right" Margin="12,0,0,0" Padding="12,3" Visibility="Collapsed" />
+                <TextBlock x:Name="InfoText" VerticalAlignment="Center" TextWrapping="Wrap" Foreground="#3B2F00" />
+            </DockPanel>
+        </Border>
+
+        <!-- Status bar. -->
+        <Border DockPanel.Dock="Bottom" Padding="12,4" BorderThickness="0,1,0,0"
+                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+            <DockPanel>
+                <TextBlock x:Name="ZoomText" DockPanel.Dock="Right" MinWidth="56" TextAlignment="Right" />
+                <TextBlock x:Name="PageSizeText" DockPanel.Dock="Right" Margin="0,0,18,0" Opacity="0.75" />
+                <TextBlock x:Name="PageText" DockPanel.Dock="Right" Margin="0,0,18,0" />
+                <ProgressBar x:Name="Busy" DockPanel.Dock="Right" Width="120" Height="6" IsIndeterminate="True"
+                             Margin="0,0,18,0" Visibility="Collapsed" />
+                <TextBlock x:Name="StatusText" Text="Ready" TextTrimming="CharacterEllipsis" />
+            </DockPanel>
+        </Border>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="NavColumn" Width="270" MinWidth="0" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Navigation panels. Filled in code. -->
+            <TabControl x:Name="NavTabs" Grid.Column="0" TabStripPlacement="Top" Margin="6,6,0,6" Padding="0" />
+            <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="Transparent" />
+
+            <Grid Grid.Column="2">
+                <TabControl x:Name="DocTabs" Margin="0,6,6,6" Padding="0" />
+
+                <!-- Shown when no document is open. -->
+                <Border x:Name="Welcome" Background="{DynamicResource ApplicationBackgroundBrush}">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="560">
+                        <Image Source="/Assets/PDF4Free.png" Width="96" Height="96" HorizontalAlignment="Center" Margin="0,0,0,10"
+                               RenderOptions.BitmapScalingMode="HighQuality" />
+                        <TextBlock Text="PDF4Free" FontSize="40" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                        <TextBlock Text="View, edit, organise, convert, sign and protect PDF documents."
+                                   FontSize="15" Opacity="0.75" HorizontalAlignment="Center" Margin="0,6,0,24" TextWrapping="Wrap" TextAlignment="Center" />
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <Button x:Name="WelcomeOpen" Content="Open a PDF…" Padding="22,9" Margin="6" FontSize="14" />
+                            <Button x:Name="WelcomeCreate" Content="Create a PDF from files…" Padding="22,9" Margin="6" FontSize="14" />
+                            <Button x:Name="WelcomeCombine" Content="Combine files…" Padding="22,9" Margin="6" FontSize="14" />
+                        </StackPanel>
+                        <TextBlock Text="or drop files anywhere in this window" Opacity="0.6" HorizontalAlignment="Center" Margin="0,14,0,18" />
+                        <TextBlock x:Name="RecentCaption" Text="Recent files" FontWeight="SemiBold" Margin="4,0,0,6" Visibility="Collapsed" />
+                        <ItemsControl x:Name="RecentList" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+    </DockPanel>
+</Window>

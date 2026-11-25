@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>PDF4Free.Core</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Pinned to the 6.2 line on purpose: it is MIT licensed. PDFsharp 6.5 moved to AGPL-3.0 with a licence check. -->
+    <PackageReference Include="PDFsharp-MigraDoc-WPF" Version="[6.2.4]" />
+    <PackageReference Include="bblanchon.PDFium.Win32" Version="160.0.8179" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="PDF4Free.Tests" />
+    <Using Include="System.IO" />
+  </ItemGroup>
+
+</Project>

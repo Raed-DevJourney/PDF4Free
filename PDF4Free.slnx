@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PDF4Free.Core/PDF4Free.Core.csproj" />
+    <Project Path="src/PDF4Free.App/PDF4Free.App.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PDF4Free.Tests/PDF4Free.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/IconBuilder/IconBuilder.csproj" />
+  </Folder>
+</Solution>
